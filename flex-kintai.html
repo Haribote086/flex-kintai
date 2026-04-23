@@ -7,10 +7,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;400;500&family=Nunito:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #ede8e2;
-      --surface: #f5f1ec;
-      --surface2: #e6e0d8;
-      --border: #d8d0c6;
+      --bg: #f5f0eb;
+      --surface: #fffdf9;
+      --surface2: #f0ebe4;
+      --border: #e8e0d6;
       --accent: #7db89a;
       --accent-light: #d4ede3;
       --accent2: #e8a87c;
@@ -585,7 +585,7 @@
   <div class="gauge-card">
     <div class="gauge-row">
       <div>
-        <div class="gauge-label">過不足時間</div>
+        <div class="gauge-label">今日時点の過不足</div>
         <div style="display:flex; align-items:flex-end; gap:4px; margin-top:8px;">
           <div class="gauge-main" id="gauge-diff">—</div>
           <div class="gauge-unit">h</div>
@@ -593,7 +593,7 @@
       </div>
       <div style="text-align:right;">
         <div class="gauge-label">進捗</div>
-        <div style="font-family:var(--font-mono); font-size:24px; font-weight:500; margin-top:8px;" id="gauge-pct">—%</div>
+        <div style="font-family:var(--font-sans); font-size:24px; font-weight:600; margin-top:8px;" id="gauge-pct">—%</div>
       </div>
     </div>
     <div class="progress-wrap">
@@ -605,13 +605,18 @@
         <div class="stat-lbl">実績 h</div>
       </div>
       <div class="stat-item">
-        <div class="stat-val" id="stat-required">—</div>
-        <div class="stat-lbl">所定 h</div>
+        <div class="stat-val" id="stat-should">—</div>
+        <div class="stat-lbl">あるべき h</div>
       </div>
       <div class="stat-item">
         <div class="stat-val" id="stat-days">—</div>
         <div class="stat-lbl">入力日数</div>
       </div>
+    </div>
+    <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border); display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted);">
+      <span>月の所定: <span id="info-required" style="color:var(--text); font-weight:500;">—</span> h</span>
+      <span>今日までの平日: <span id="info-bizdays" style="color:var(--text); font-weight:500;">—</span> 日</span>
+      <span>月の平日: <span id="info-total-bizdays" style="color:var(--text); font-weight:500;">—</span> 日</span>
     </div>
   </div>
 
@@ -620,6 +625,9 @@
     <label>所定労働時間</label>
     <input type="number" id="required-hours" min="1" max="300" value="160" onchange="saveSettings()" />
     <span class="settings-unit">h / 月</span>
+    <label style="margin-left:12px;">1日</label>
+    <input type="number" id="daily-hours" min="1" max="24" step="0.5" value="8" onchange="saveSettings()" />
+    <span class="settings-unit">h</span>
     <label style="margin-left:12px;">休憩</label>
     <input type="number" id="break-hours" min="0" max="3" step="0.5" value="1" onchange="saveSettings()" />
     <span class="settings-unit">h</span>
@@ -777,6 +785,7 @@
   function saveSettings() {
     const s = {
       requiredHours: parseFloat(document.getElementById('required-hours').value) || 160,
+      dailyHours: parseFloat(document.getElementById('daily-hours').value) || 8,
       breakHours: parseFloat(document.getElementById('break-hours').value) || 1
     };
     localStorage.setItem(settingsKey(), JSON.stringify(s));
@@ -788,6 +797,7 @@
     if (raw) {
       const s = JSON.parse(raw);
       document.getElementById('required-hours').value = s.requiredHours;
+      document.getElementById('daily-hours').value = s.dailyHours || 8;
       document.getElementById('break-hours').value = s.breakHours;
     }
   }
@@ -795,7 +805,7 @@
   function getSettings() {
     const raw = localStorage.getItem(settingsKey());
     if (raw) return JSON.parse(raw);
-    return { requiredHours: 160, breakHours: 1 };
+    return { requiredHours: 160, dailyHours: 8, breakHours: 1 };
   }
 
   // ======= RECORDS =======
@@ -889,29 +899,86 @@
     }).join('');
   }
 
+  // ======= HOLIDAYS =======
+  let holidayCache = {}; // { 'YYYY': Set(['YYYY-MM-DD', ...]) }
+
+  async function fetchHolidays(year) {
+    if (holidayCache[year]) return holidayCache[year];
+    try {
+      const res = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/ja.japanese%23holiday%40group.v.calendar.google.com/events?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&timeMin=${year}-01-01T00:00:00Z&timeMax=${year}-12-31T23:59:59Z&singleEvents=true&maxResults=50`
+      );
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      const dates = new Set((data.items || []).map(e => e.start.date));
+      holidayCache[year] = dates;
+      return dates;
+    } catch {
+      // オフライン時は空セット（祝日除外なし）
+      holidayCache[year] = new Set();
+      return holidayCache[year];
+    }
+  }
+
+  function isWeekend(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    const w = d.getDay();
+    return w === 0 || w === 6;
+  }
+
+  async function countBizDays(year, month, upToDay = null) {
+    const holidays = await fetchHolidays(year);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const limit = upToDay !== null ? Math.min(upToDay, daysInMonth) : daysInMonth;
+    let count = 0;
+    for (let d = 1; d <= limit; d++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      if (!isWeekend(dateStr) && !holidays.has(dateStr)) count++;
+    }
+    return count;
+  }
+
   // ======= GAUGE =======
-  function updateGauge() {
+  async function updateGauge() {
     const records = getRecords();
     const s = getSettings();
 
     const totalMin = records.reduce((sum, r) => sum + r.workMin, 0);
     const totalH   = totalMin / 60;
-    const required = s.requiredHours;
-    const diff     = totalH - required;
-    const pct      = Math.min(Math.round((totalH / required) * 100), 999);
+
+    // 今日が表示月かどうか
+    const today = new Date();
+    const isCurrentMonth = (today.getFullYear() === viewYear && today.getMonth() === viewMonth);
+    const upToDay = isCurrentMonth ? today.getDate() : null;
+
+    // 平日数カウント
+    const bizDaysToday = await countBizDays(viewYear, viewMonth, upToDay);
+    const bizDaysTotal = await countBizDays(viewYear, viewMonth, null);
+
+    // 今日時点のあるべき時間
+    const shouldH = bizDaysToday * s.dailyHours;
+    const diff    = totalH - shouldH;
+    const pct     = bizDaysTotal > 0
+      ? Math.min(Math.round((totalH / (bizDaysTotal * s.dailyHours)) * 100), 999)
+      : 0;
 
     const diffEl = document.getElementById('gauge-diff');
     const sign   = diff >= 0 ? '+' : '';
     diffEl.textContent = sign + diff.toFixed(1);
     diffEl.className   = 'gauge-main ' + (diff > 0 ? 'positive' : diff < 0 ? 'negative' : 'neutral');
 
-    document.getElementById('gauge-pct').textContent   = pct + '%';
+    document.getElementById('gauge-pct').textContent    = pct + '%';
     document.getElementById('stat-actual').textContent  = totalH.toFixed(1);
-    document.getElementById('stat-required').textContent = required;
+    document.getElementById('stat-should').textContent  = shouldH.toFixed(1);
     document.getElementById('stat-days').textContent    = records.length;
+    document.getElementById('info-required').textContent     = s.requiredHours;
+    document.getElementById('info-bizdays').textContent      = bizDaysToday;
+    document.getElementById('info-total-bizdays').textContent = bizDaysTotal;
 
     const bar = document.getElementById('progress-bar');
-    const barPct = Math.min((totalH / required) * 100, 100);
+    const barPct = bizDaysTotal > 0
+      ? Math.min((totalH / (bizDaysTotal * s.dailyHours)) * 100, 100)
+      : 0;
     bar.style.width = barPct + '%';
     bar.style.backgroundColor = diff >= 0 ? 'var(--accent)' : 'var(--danger)';
   }
