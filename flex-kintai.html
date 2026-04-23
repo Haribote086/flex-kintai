@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>フレックス勤怠</title>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;400;500&family=Nunito:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #ede8e2;
+      --surface: #f5f1ec;
+      --surface2: #e6e0d8;
+      --border: #d8d0c6;
+      --accent: #7db89a;
+      --accent-light: #d4ede3;
+      --accent2: #e8a87c;
+      --danger: #d97a7a;
+      --danger-light: #fce8e8;
+      --text: #3d3530;
+      --text-muted: #9e9088;
+      --font-sans: 'Nunito', 'Zen Kaku Gothic New', sans-serif;
+      --font-body: 'Zen Kaku Gothic New', sans-serif;
+      --radius: 16px;
+      --shadow: 0 2px 12px rgba(100,80,60,0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-weight: 300;
+      min-height: 100vh;
+      padding: 24px 16px 80px;
+    }
+
+    /* ========== LOGIN ========== */
+    #login-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 28px;
+    }
+
+    .login-title {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .login-logo {
+      font-family: var(--font-sans);
+      font-size: 34px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: -0.01em;
+    }
+
+    .login-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 32px;
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .login-box label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .login-box input {
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 17px;
+      letter-spacing: 0.1em;
+      padding: 14px 16px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .login-box input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-light);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      cursor: pointer;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      padding: 14px;
+      transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+      width: 100%;
+      box-shadow: 0 3px 10px rgba(125,184,154,0.35);
+    }
+
+    .btn-primary:hover { opacity: 0.88; box-shadow: 0 4px 14px rgba(125,184,154,0.45); }
+    .btn-primary:active { transform: scale(0.98); }
+
+    .login-note {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.7;
+    }
+
+    /* ========== MAIN APP ========== */
+    #app-screen { display: none; max-width: 480px; margin: 0 auto; }
+
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .app-logo {
+      font-family: var(--font-sans);
+      font-size: 19px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .user-badge {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--text-muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .user-badge:hover { background: var(--surface2); }
+
+    /* ========== PERIOD NAV ========== */
+    .period-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px 20px;
+      margin-bottom: 16px;
+    }
+
+    .period-label {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .period-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px 14px;
+      transition: color 0.2s, background 0.2s;
+    }
+
+    .period-btn:hover { color: var(--accent); background: var(--accent-light); border-color: var(--accent); }
+
+    /* ========== GAUGE ========== */
+    .gauge-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px 22px;
+      margin-bottom: 16px;
+    }
+
+    .gauge-row {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .gauge-main {
+      font-family: var(--font-sans);
+      font-size: 46px;
+      font-weight: 600;
+      line-height: 1;
+      transition: color 0.3s;
+    }
+
+    .gauge-main.positive { color: var(--accent); }
+    .gauge-main.negative { color: var(--danger); }
+    .gauge-main.neutral  { color: var(--text-muted); }
+
+    .gauge-sign {
+      font-size: 26px;
+      margin-bottom: 4px;
+      margin-right: 2px;
+    }
+
+    .gauge-unit {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .gauge-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-bottom: 4px;
+    }
+
+    .progress-wrap {
+      background: var(--surface2);
+      border-radius: 99px;
+      height: 8px;
+      overflow: hidden;
+      margin-bottom: 18px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.5s ease, background-color 0.3s;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stat-item {
+      text-align: center;
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 10px 6px;
+    }
+
+    .stat-val {
+      font-family: var(--font-sans);
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: var(--text);
+    }
+
+    .stat-lbl {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    /* ========== SETTINGS ========== */
+    .settings-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .settings-card label {
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      font-weight: 400;
+    }
+
+    .settings-card input[type="number"] {
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      padding: 7px 10px;
+      width: 72px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      text-align: right;
+    }
+
+    .settings-card input[type="number"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-light);
+    }
+
+    .settings-unit {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ========== INPUT FORM ========== */
+    .input-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px 22px;
+      margin-bottom: 16px;
+    }
+
+    .input-card-title {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-bottom: 14px;
+    }
+
+    .input-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .input-group label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .input-group input[type="time"],
+    .input-group input[type="date"] {
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      padding: 10px 12px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .input-group input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-light);
+    }
+
+    .btn-add {
+      background: var(--accent-light);
+      border: 1.5px solid var(--accent);
+      border-radius: 10px;
+      color: var(--accent);
+      cursor: pointer;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 12px;
+      transition: background 0.2s, box-shadow 0.2s;
+      width: 100%;
+      margin-top: 4px;
+    }
+
+    .btn-add:hover { background: var(--accent); color: #fff; box-shadow: 0 3px 10px rgba(125,184,154,0.3); }
+
+    /* ========== RECORDS ========== */
+    .records-title {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-bottom: 10px;
+    }
+
+    .record-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 13px 16px;
+      margin-bottom: 8px;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .record-date {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-muted);
+      min-width: 50px;
+    }
+
+    .record-time {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .record-hours {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent);
+      min-width: 52px;
+      text-align: right;
+    }
+
+    .btn-del {
+      background: none;
+      border: none;
+      color: var(--border);
+      cursor: pointer;
+      font-size: 15px;
+      padding: 0 0 0 10px;
+      transition: color 0.2s;
+    }
+
+    .btn-del:hover { color: var(--danger); }
+
+    .empty-msg {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 28px 0;
+    }
+
+    /* ========== TOAST ========== */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--text);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 13px;
+      padding: 12px 20px;
+      transition: transform 0.3s ease;
+      z-index: 999;
+      white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(60,40,20,0.18);
+    }
+
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ========== MODAL ========== */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(100,80,60,0.35);
+      backdrop-filter: blur(2px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 32px rgba(100,80,60,0.15);
+      padding: 28px;
+      width: 90%;
+      max-width: 320px;
+    }
+
+    .modal h3 {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+
+    .modal-btns {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .btn-cancel {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      cursor: pointer;
+      flex: 1;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      padding: 11px;
+      transition: background 0.2s;
+    }
+
+    .btn-cancel:hover { background: var(--border); }
+
+    .btn-danger {
+      background: var(--danger-light);
+      border: 1px solid var(--danger);
+      border-radius: 8px;
+      color: var(--danger);
+      cursor: pointer;
+      flex: 1;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 11px;
+      transition: background 0.2s;
+    }
+
+    .btn-danger:hover { background: var(--danger); color: #fff; }
+  </style>
+</head>
+<body>
+
+<!-- ======= LOGIN ======= -->
+<div id="login-screen">
+  <div>
+    <div class="login-title">Flex Tracker</div>
+    <div class="login-logo">勤怠</div>
+  </div>
+  <div class="login-box">
+    <label for="user-id-input">ユーザーID（半角英数8桁以内）</label>
+    <input id="user-id-input" type="text" maxlength="8" placeholder="例: taro1234" autocomplete="off" spellcheck="false" />
+    <button class="btn-primary" onclick="handleLogin()">ログイン / 新規作成</button>
+  </div>
+  <div class="login-note">IDのみで管理されます。パスワードはありません。<br>初回入力時に自動でアカウントが作成されます。</div>
+</div>
+
+<!-- ======= APP ======= -->
+<div id="app-screen">
+  <div class="app-header">
+    <div class="app-logo">勤怠</div>
+    <div class="user-badge" id="user-badge" onclick="showLogoutModal()">— ログアウト</div>
+  </div>
+
+  <!-- 月ナビ -->
+  <div class="period-nav">
+    <button class="period-btn" onclick="changeMonth(-1)">‹</button>
+    <div class="period-label" id="period-label">—</div>
+    <button class="period-btn" onclick="changeMonth(1)">›</button>
+  </div>
+
+  <!-- ゲージ -->
+  <div class="gauge-card">
+    <div class="gauge-row">
+      <div>
+        <div class="gauge-label">過不足時間</div>
+        <div style="display:flex; align-items:flex-end; gap:4px; margin-top:8px;">
+          <div class="gauge-main" id="gauge-diff">—</div>
+          <div class="gauge-unit">h</div>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div class="gauge-label">進捗</div>
+        <div style="font-family:var(--font-mono); font-size:24px; font-weight:500; margin-top:8px;" id="gauge-pct">—%</div>
+      </div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-item">
+        <div class="stat-val" id="stat-actual">—</div>
+        <div class="stat-lbl">実績 h</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-val" id="stat-required">—</div>
+        <div class="stat-lbl">所定 h</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-val" id="stat-days">—</div>
+        <div class="stat-lbl">入力日数</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 設定 -->
+  <div class="settings-card">
+    <label>所定労働時間</label>
+    <input type="number" id="required-hours" min="1" max="300" value="160" onchange="saveSettings()" />
+    <span class="settings-unit">h / 月</span>
+    <label style="margin-left:12px;">休憩</label>
+    <input type="number" id="break-hours" min="0" max="3" step="0.5" value="1" onchange="saveSettings()" />
+    <span class="settings-unit">h</span>
+  </div>
+
+  <!-- 入力フォーム -->
+  <div class="input-card">
+    <div class="input-card-title">勤務時間を追加</div>
+    <div class="input-row">
+      <div class="input-group">
+        <label>日付</label>
+        <input type="date" id="input-date" />
+      </div>
+      <div class="input-group" style="grid-column: span 1"></div>
+    </div>
+    <div class="input-row">
+      <div class="input-group">
+        <label>開始</label>
+        <input type="time" id="input-start" value="09:00" />
+      </div>
+      <div class="input-group">
+        <label>終了</label>
+        <input type="time" id="input-end" value="18:00" />
+      </div>
+    </div>
+    <button class="btn-add" onclick="addRecord()">＋ 追加</button>
+  </div>
+
+  <!-- 記録一覧 -->
+  <div class="records-title">今月の記録</div>
+  <div id="records-list"></div>
+</div>
+
+<!-- トースト -->
+<div class="toast" id="toast"></div>
+
+<!-- ログアウト確認モーダル -->
+<div class="modal-overlay" id="logout-modal">
+  <div class="modal">
+    <h3>ログアウト</h3>
+    <p style="font-size:13px; color:var(--text-muted); line-height:1.6;">ログアウトしますか？<br>データはそのまま保持されます。</p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeLogoutModal()">キャンセル</button>
+      <button class="btn-danger" onclick="logout()">ログアウト</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ======= CONSTANTS =======
+  const FIXED_SALT = 'FLEXTRKR2024';
+
+  // ======= STATE =======
+  let currentUserId = null;
+  let currentKey = null;
+  let viewYear = new Date().getFullYear();
+  let viewMonth = new Date().getMonth(); // 0-indexed
+
+  // ======= SUPABASE CONFIG =======
+  // ★ 以下をご自身のSupabaseプロジェクト情報に書き換えてください
+  const SUPABASE_URL = 'https://twlrvqxwrqxbssesyyan.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3bHJ2cXh3cnF4YnNzZXN5eWFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MTQxMDEsImV4cCI6MjA5MjQ5MDEwMX0.KsJHYKVbCLblLD7QC28Ot-Rscxo3-vDLopwAVyru724';
+
+  async function sbFetch(path, method = 'GET', body = null) {
+    const opts = {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Prefer': method === 'POST' ? 'return=representation' : ''
+      }
+    };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(SUPABASE_URL + path, opts);
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(err);
+    }
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
+  }
+
+  // ======= KEY GENERATION =======
+  function buildKey(userId, createdDate) {
+    return `${userId}_${FIXED_SALT}_${createdDate}`;
+  }
+
+  // ======= LOGIN =======
+  async function handleLogin() {
+    const raw = document.getElementById('user-id-input').value.trim();
+    if (!raw || !/^[a-zA-Z0-9]{1,8}$/.test(raw)) {
+      showToast('半角英数8桁以内で入力してください');
+      return;
+    }
+
+    try {
+      // ユーザー存在確認
+      const existing = await sbFetch(
+        `/rest/v1/users?user_id=eq.${encodeURIComponent(raw)}&select=user_id,created_date`
+      );
+
+      let createdDate;
+      if (existing && existing.length > 0) {
+        createdDate = existing[0].created_date;
+      } else {
+        // 新規登録
+        createdDate = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        await sbFetch('/rest/v1/users', 'POST', { user_id: raw, created_date: createdDate });
+      }
+
+      currentUserId = raw;
+      currentKey = buildKey(raw, createdDate);
+      document.getElementById('user-badge').textContent = raw + ' ›';
+      showApp();
+    } catch (e) {
+      showToast('エラーが発生しました: ' + e.message);
+    }
+  }
+
+  // ======= APP SHOW/HIDE =======
+  function showApp() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    setTodayDate();
+    loadSettings();
+    renderPeriod();
+  }
+
+  function setTodayDate() {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    document.getElementById('input-date').value = `${y}-${m}-${d}`;
+  }
+
+  // ======= PERIOD NAV =======
+  function changeMonth(delta) {
+    viewMonth += delta;
+    if (viewMonth < 0)  { viewMonth = 11; viewYear--; }
+    if (viewMonth > 11) { viewMonth = 0;  viewYear++; }
+    renderPeriod();
+  }
+
+  function renderPeriod() {
+    document.getElementById('period-label').textContent =
+      `${viewYear}年${viewMonth + 1}月`;
+    loadRecords();
+  }
+
+  // ======= SETTINGS =======
+  function settingsKey() { return `settings_${currentKey}`; }
+
+  function saveSettings() {
+    const s = {
+      requiredHours: parseFloat(document.getElementById('required-hours').value) || 160,
+      breakHours: parseFloat(document.getElementById('break-hours').value) || 1
+    };
+    localStorage.setItem(settingsKey(), JSON.stringify(s));
+    updateGauge();
+  }
+
+  function loadSettings() {
+    const raw = localStorage.getItem(settingsKey());
+    if (raw) {
+      const s = JSON.parse(raw);
+      document.getElementById('required-hours').value = s.requiredHours;
+      document.getElementById('break-hours').value = s.breakHours;
+    }
+  }
+
+  function getSettings() {
+    const raw = localStorage.getItem(settingsKey());
+    if (raw) return JSON.parse(raw);
+    return { requiredHours: 160, breakHours: 1 };
+  }
+
+  // ======= RECORDS =======
+  function recordsKey() {
+    return `records_${currentKey}_${viewYear}_${String(viewMonth + 1).padStart(2, '0')}`;
+  }
+
+  function loadRecords() {
+    renderRecords();
+    updateGauge();
+  }
+
+  function getRecords() {
+    const raw = localStorage.getItem(recordsKey());
+    return raw ? JSON.parse(raw) : [];
+  }
+
+  function saveRecords(records) {
+    localStorage.setItem(recordsKey(), JSON.stringify(records));
+  }
+
+  function addRecord() {
+    const date  = document.getElementById('input-date').value;
+    const start = document.getElementById('input-start').value;
+    const end   = document.getElementById('input-end').value;
+
+    if (!date || !start || !end) {
+      showToast('日付・開始・終了を入力してください');
+      return;
+    }
+
+    // 入力日が表示月に合っているか確認
+    const d = new Date(date);
+    if (d.getFullYear() !== viewYear || d.getMonth() !== viewMonth) {
+      showToast('表示中の月の日付を入力してください');
+      return;
+    }
+
+    const s = getSettings();
+    const startMin = timeToMin(start);
+    const endMin   = timeToMin(end);
+    if (endMin <= startMin) {
+      showToast('終了時刻は開始より後にしてください');
+      return;
+    }
+
+    const workMin = endMin - startMin - s.breakHours * 60;
+    if (workMin <= 0) {
+      showToast('実労働時間が0以下になります');
+      return;
+    }
+
+    const records = getRecords();
+    records.push({ id: Date.now(), date, start, end, workMin });
+    records.sort((a, b) => a.date.localeCompare(b.date));
+    saveRecords(records);
+    renderRecords();
+    updateGauge();
+    showToast('追加しました');
+  }
+
+  function deleteRecord(id) {
+    const records = getRecords().filter(r => r.id !== id);
+    saveRecords(records);
+    renderRecords();
+    updateGauge();
+    showToast('削除しました');
+  }
+
+  function renderRecords() {
+    const list = document.getElementById('records-list');
+    const records = getRecords();
+
+    if (records.length === 0) {
+      list.innerHTML = '<div class="empty-msg">記録がありません</div>';
+      return;
+    }
+
+    list.innerHTML = records.map(r => {
+      const h = Math.floor(r.workMin / 60);
+      const m = r.workMin % 60;
+      const hStr = m > 0 ? `${h}h${m}m` : `${h}h`;
+      const dateDisp = r.date.slice(5).replace('-', '/');
+      return `
+        <div class="record-item">
+          <div class="record-date">${dateDisp}</div>
+          <div class="record-time">${r.start}〜${r.end}</div>
+          <div class="record-hours">${hStr}</div>
+          <button class="btn-del" onclick="deleteRecord(${r.id})">✕</button>
+        </div>`;
+    }).join('');
+  }
+
+  // ======= GAUGE =======
+  function updateGauge() {
+    const records = getRecords();
+    const s = getSettings();
+
+    const totalMin = records.reduce((sum, r) => sum + r.workMin, 0);
+    const totalH   = totalMin / 60;
+    const required = s.requiredHours;
+    const diff     = totalH - required;
+    const pct      = Math.min(Math.round((totalH / required) * 100), 999);
+
+    const diffEl = document.getElementById('gauge-diff');
+    const sign   = diff >= 0 ? '+' : '';
+    diffEl.textContent = sign + diff.toFixed(1);
+    diffEl.className   = 'gauge-main ' + (diff > 0 ? 'positive' : diff < 0 ? 'negative' : 'neutral');
+
+    document.getElementById('gauge-pct').textContent   = pct + '%';
+    document.getElementById('stat-actual').textContent  = totalH.toFixed(1);
+    document.getElementById('stat-required').textContent = required;
+    document.getElementById('stat-days').textContent    = records.length;
+
+    const bar = document.getElementById('progress-bar');
+    const barPct = Math.min((totalH / required) * 100, 100);
+    bar.style.width = barPct + '%';
+    bar.style.backgroundColor = diff >= 0 ? 'var(--accent)' : 'var(--danger)';
+  }
+
+  // ======= UTILS =======
+  function timeToMin(t) {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  // ======= TOAST =======
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // ======= LOGOUT MODAL =======
+  function showLogoutModal() {
+    document.getElementById('logout-modal').classList.add('open');
+  }
+
+  function closeLogoutModal() {
+    document.getElementById('logout-modal').classList.remove('open');
+  }
+
+  function logout() {
+    currentUserId = null;
+    currentKey = null;
+    closeLogoutModal();
+    document.getElementById('app-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('user-id-input').value = '';
+  }
+</script>
+</body>
+</html>
