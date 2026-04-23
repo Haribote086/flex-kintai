@@ -287,16 +287,21 @@
       padding: 16px 20px;
       margin-bottom: 16px;
       display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 10px;
     }
 
-    .settings-card label {
+    .settings-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .settings-row label {
       font-size: 12px;
       color: var(--text-muted);
       white-space: nowrap;
-      font-weight: 400;
+      min-width: 90px;
     }
 
     .settings-card input[type="number"] {
@@ -305,9 +310,9 @@
       border-radius: 8px;
       color: var(--text);
       font-family: var(--font-sans);
-      font-size: 15px;
-      padding: 7px 10px;
-      width: 72px;
+      font-size: 14px;
+      padding: 7px 6px;
+      width: 58px;
       outline: none;
       transition: border-color 0.2s, box-shadow 0.2s;
       text-align: right;
@@ -549,6 +554,102 @@
     }
 
     .btn-danger:hover { background: var(--danger); color: #fff; }
+
+    /* ========== TABS ========== */
+    .tab-bar {
+      display: flex;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      flex: 1;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 12px;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .tab-btn.active {
+      background: var(--accent-light);
+      color: var(--accent);
+    }
+
+    /* ========== CALENDAR ========== */
+    .calendar-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .cal-header {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .cal-dow {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      padding: 8px 4px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    .cal-dow.sun { color: var(--danger); }
+    .cal-dow.sat { color: #7aacdb; }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+    }
+
+    .cal-cell {
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      min-height: 56px;
+      padding: 4px;
+      position: relative;
+    }
+
+    .cal-cell:nth-child(7n) { border-right: none; }
+
+    .cal-cell.empty { background: var(--bg); }
+    .cal-cell.today { background: var(--accent-light); }
+    .cal-cell.holiday { background: #fef0f0; }
+    .cal-cell.weekend-sat { background: #f0f4fe; }
+
+    .cal-day {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .cal-cell.today .cal-day { color: var(--accent); }
+    .cal-cell.sun .cal-day,
+    .cal-cell.holiday .cal-day { color: var(--danger); }
+    .cal-cell.sat .cal-day { color: #7aacdb; }
+
+    .cal-hours {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent);
+      line-height: 1.2;
+    }
   </style>
 </head>
 <body>
@@ -606,7 +707,7 @@
       </div>
       <div class="stat-item">
         <div class="stat-val" id="stat-should">—</div>
-        <div class="stat-lbl">あるべき h</div>
+        <div class="stat-lbl">必要 h</div>
       </div>
       <div class="stat-item">
         <div class="stat-val" id="stat-days">—</div>
@@ -622,15 +723,21 @@
 
   <!-- 設定 -->
   <div class="settings-card">
-    <label>所定労働時間</label>
-    <input type="number" id="required-hours" min="1" max="300" value="160" onchange="saveSettings()" />
-    <span class="settings-unit">h / 月</span>
-    <label style="margin-left:12px;">1日</label>
-    <input type="number" id="daily-hours" min="1" max="24" step="0.5" value="8" onchange="saveSettings()" />
-    <span class="settings-unit">h</span>
-    <label style="margin-left:12px;">休憩</label>
-    <input type="number" id="break-hours" min="0" max="3" step="0.5" value="1" onchange="saveSettings()" />
-    <span class="settings-unit">h</span>
+    <div class="settings-row">
+      <label>所定労働時間</label>
+      <input type="number" id="required-hours" min="1" max="300" value="160" onchange="saveSettings()" />
+      <span class="settings-unit">h / 月</span>
+    </div>
+    <div class="settings-row">
+      <label>1日の所定</label>
+      <input type="number" id="daily-hours" min="1" max="24" step="0.5" value="8" onchange="saveSettings()" />
+      <span class="settings-unit">h</span>
+    </div>
+    <div class="settings-row">
+      <label>休憩時間</label>
+      <input type="number" id="break-hours" min="0" max="3" step="0.5" value="1" onchange="saveSettings()" />
+      <span class="settings-unit">h</span>
+    </div>
   </div>
 
   <!-- 入力フォーム -->
@@ -656,9 +763,33 @@
     <button class="btn-add" onclick="addRecord()">＋ 追加</button>
   </div>
 
-  <!-- 記録一覧 -->
-  <div class="records-title">今月の記録</div>
-  <div id="records-list"></div>
+  <!-- タブ切り替え -->
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-list" onclick="switchTab('list')">📋 リスト</button>
+    <button class="tab-btn" id="tab-cal" onclick="switchTab('cal')">📅 カレンダー</button>
+  </div>
+
+  <!-- リストビュー -->
+  <div id="view-list">
+    <div class="records-title">今月の記録</div>
+    <div id="records-list"></div>
+  </div>
+
+  <!-- カレンダービュー -->
+  <div id="view-cal" style="display:none;">
+    <div class="calendar-wrap">
+      <div class="cal-header">
+        <div class="cal-dow sun">日</div>
+        <div class="cal-dow">月</div>
+        <div class="cal-dow">火</div>
+        <div class="cal-dow">水</div>
+        <div class="cal-dow">木</div>
+        <div class="cal-dow">金</div>
+        <div class="cal-dow sat">土</div>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
+  </div>
 </div>
 
 <!-- トースト -->
@@ -793,6 +924,7 @@
     document.getElementById('period-label').textContent =
       `${viewYear}年${viewMonth + 1}月`;
     loadRecords();
+    if (currentTab === 'cal') renderCalendar();
   }
 
   // ======= SETTINGS =======
@@ -880,6 +1012,7 @@
     saveRecords(records);
     renderRecords();
     updateGauge();
+    if (currentTab === 'cal') renderCalendar();
     showToast('追加しました');
   }
 
@@ -888,6 +1021,7 @@
     saveRecords(records);
     renderRecords();
     updateGauge();
+    if (currentTab === 'cal') renderCalendar();
     showToast('削除しました');
   }
 
@@ -997,6 +1131,75 @@
       : 0;
     bar.style.width = barPct + '%';
     bar.style.backgroundColor = diff >= 0 ? 'var(--accent)' : 'var(--danger)';
+  }
+
+  // ======= TABS =======
+  let currentTab = 'list';
+
+  function switchTab(tab) {
+    currentTab = tab;
+    document.getElementById('view-list').style.display = tab === 'list' ? 'block' : 'none';
+    document.getElementById('view-cal').style.display  = tab === 'cal'  ? 'block' : 'none';
+    document.getElementById('tab-list').classList.toggle('active', tab === 'list');
+    document.getElementById('tab-cal').classList.toggle('active', tab === 'cal');
+    if (tab === 'cal') renderCalendar();
+  }
+
+  // ======= CALENDAR =======
+  async function renderCalendar() {
+    const grid = document.getElementById('cal-grid');
+    const records = getRecords();
+    const holidays = await fetchHolidays(viewYear);
+
+    // 日付→労働時間のマップ
+    const hoursMap = {};
+    records.forEach(r => {
+      const h = r.workMin / 60;
+      hoursMap[r.date] = (hoursMap[r.date] || 0) + h;
+    });
+
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+    const firstDay = new Date(viewYear, viewMonth, 1).getDay(); // 0=日
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+    let html = '';
+
+    // 空白セル
+    for (let i = 0; i < firstDay; i++) {
+      html += '<div class="cal-cell empty"></div>';
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const dow = new Date(dateStr + 'T00:00:00').getDay();
+      const isToday    = dateStr === todayStr;
+      const isSun      = dow === 0;
+      const isSat      = dow === 6;
+      const isHoliday  = holidays.has(dateStr);
+      const hasRecord  = hoursMap[dateStr] !== undefined;
+
+      let cls = 'cal-cell';
+      if (isToday)   cls += ' today';
+      if (isHoliday) cls += ' holiday';
+      else if (isSat) cls += ' weekend-sat';
+      if (isSun)     cls += ' sun';
+      else if (isSat) cls += ' sat';
+
+      const hoursDisp = hasRecord
+        ? `<div class="cal-hours">${hoursMap[dateStr].toFixed(1)}h</div>`
+        : '';
+
+      html += `<div class="${cls}" onclick="selectCalDate('${dateStr}')" style="cursor:pointer;"><div class="cal-day">${d}</div>${hoursDisp}</div>`;
+    }
+
+    grid.innerHTML = html;
+  }
+
+  function selectCalDate(dateStr) {
+    document.getElementById('input-date').value = dateStr;
+    showToast(`${dateStr.slice(5).replace('-','/')} を選択しました`);
   }
 
   // ======= UTILS =======
