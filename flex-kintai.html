@@ -741,11 +741,27 @@
 
       currentUserId = raw;
       currentKey = buildKey(raw, createdDate);
+      sessionStorage.setItem('userId', raw);
+      sessionStorage.setItem('createdDate', createdDate);
       document.getElementById('user-badge').textContent = raw + ' ›';
       showApp();
     } catch (e) {
       showToast('エラーが発生しました: ' + e.message);
     }
+  }
+
+  // ======= AUTO RESTORE =======
+  function tryRestoreSession() {
+    const userId = sessionStorage.getItem('userId');
+    const createdDate = sessionStorage.getItem('createdDate');
+    if (userId && createdDate) {
+      currentUserId = userId;
+      currentKey = buildKey(userId, createdDate);
+      document.getElementById('user-badge').textContent = userId + ' ›';
+      showApp();
+      return true;
+    }
+    return false;
   }
 
   // ======= APP SHOW/HIDE =======
@@ -1009,11 +1025,17 @@
   function logout() {
     currentUserId = null;
     currentKey = null;
+    sessionStorage.removeItem('userId');
+    sessionStorage.removeItem('createdDate');
     closeLogoutModal();
     document.getElementById('app-screen').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('user-id-input').value = '';
   }
+</script>
+<script>
+  // ページ読み込み時にセッション復元を試みる
+  tryRestoreSession();
 </script>
 </body>
 </html>
