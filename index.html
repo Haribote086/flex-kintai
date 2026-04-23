@@ -1055,16 +1055,22 @@
   async function fetchHolidays(year) {
     if (holidayCache[year]) return holidayCache[year];
     try {
-      const res = await fetch(
-        `https://www.googleapis.com/calendar/v3/calendars/ja.japanese%23holiday%40group.v.calendar.google.com/events?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&timeMin=${year}-01-01T00:00:00Z&timeMax=${year}-12-31T23:59:59Z&singleEvents=true&maxResults=50`
-      );
+      // 内閣府公式祝日CSV（APIキー不要）
+      const res = await fetch('https://holidays-jp.github.io/api/v1/date.json');
       if (!res.ok) throw new Error();
       const data = await res.json();
-      const dates = new Set((data.items || []).map(e => e.start.date));
-      holidayCache[year] = dates;
-      return dates;
+      // 全年分をキャッシュに格納
+      const byYear = {};
+      Object.keys(data).forEach(dateStr => {
+        const y = dateStr.slice(0, 4);
+        if (!byYear[y]) byYear[y] = new Set();
+        byYear[y].add(dateStr);
+      });
+      Object.keys(byYear).forEach(y => { holidayCache[y] = byYear[y]; });
+      // 対象年がデータにない場合は空セット
+      if (!holidayCache[year]) holidayCache[year] = new Set();
+      return holidayCache[year];
     } catch {
-      // オフライン時は空セット（祝日除外なし）
       holidayCache[year] = new Set();
       return holidayCache[year];
     }
