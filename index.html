@@ -208,10 +208,11 @@
 
     .gauge-main {
       font-family: var(--font-sans);
-      font-size: 46px;
+      font-size: clamp(20px, 7vw, 40px);
       font-weight: 600;
-      line-height: 1;
+      line-height: 1.1;
       transition: color 0.3s;
+      white-space: nowrap;
     }
 
     .gauge-main.positive { color: var(--accent); }
@@ -267,10 +268,13 @@
 
     .stat-val {
       font-family: var(--font-sans);
-      font-size: 16px;
+      font-size: clamp(10px, 3vw, 14px);
       font-weight: 600;
       margin-bottom: 4px;
       color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .stat-lbl {
@@ -401,6 +405,23 @@
 
     .btn-add:hover { background: var(--accent); color: #fff; box-shadow: 0 3px 10px rgba(125,184,154,0.3); }
 
+    .btn-bulk {
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 12px;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    .btn-bulk:hover { background: var(--border); color: var(--text); }
+
     /* ========== RECORDS ========== */
     .records-title {
       font-size: 12px;
@@ -471,9 +492,9 @@
     /* ========== TOAST ========== */
     .toast {
       position: fixed;
-      bottom: 24px;
+      top: 16px;
       left: 50%;
-      transform: translateX(-50%) translateY(80px);
+      transform: translateX(-50%) translateY(calc(-100% - 32px));
       background: var(--text);
       border-radius: 10px;
       color: #fff;
@@ -481,7 +502,9 @@
       padding: 12px 20px;
       transition: transform 0.3s ease;
       z-index: 999;
-      white-space: nowrap;
+      white-space: normal;
+      max-width: 80vw;
+      text-align: center;
       box-shadow: 0 4px 16px rgba(60,40,20,0.18);
     }
 
@@ -554,6 +577,59 @@
     }
 
     .btn-danger:hover { background: var(--danger); color: #fff; }
+
+    /* ========== PAID CHECK ========== */
+    .paid-check-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    .paid-check-label input[type="checkbox"] { display: none; }
+
+    .paid-check-box {
+      width: 20px;
+      height: 20px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, border-color 0.2s;
+      flex-shrink: 0;
+    }
+
+    .paid-check-label input:checked + .paid-check-box {
+      background: #f0a868;
+      border-color: #f0a868;
+    }
+
+    .paid-check-label input:checked + .paid-check-box::after {
+      content: '✓';
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .paid-check-label input:checked ~ span:last-child { color: #f0a868; font-weight: 600; }
+
+    /* 有給バッジ */
+    .cal-paid {
+      font-size: clamp(8px, 2vw, 10px);
+      font-weight: 700;
+      color: #fff;
+      background: #f0a868;
+      border-radius: 4px;
+      padding: 1px 4px;
+      line-height: 1.4;
+      white-space: nowrap;
+    }
 
     /* ========== TABS ========== */
     .tab-bar {
@@ -645,10 +721,13 @@
 
     .cal-hours {
       font-family: var(--font-sans);
-      font-size: 11px;
+      font-size: clamp(8px, 2.2vw, 11px);
       font-weight: 600;
       color: var(--accent);
       line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   </style>
 </head>
@@ -689,7 +768,6 @@
         <div class="gauge-label">今日時点の過不足</div>
         <div style="display:flex; align-items:flex-end; gap:4px; margin-top:8px;">
           <div class="gauge-main" id="gauge-diff">—</div>
-          <div class="gauge-unit">h</div>
         </div>
       </div>
       <div style="text-align:right;">
@@ -743,14 +821,18 @@
   <!-- 入力フォーム -->
   <div class="input-card">
     <div class="input-card-title">勤務時間を追加</div>
-    <div class="input-row">
-      <div class="input-group">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+      <div class="input-group" style="flex:1;">
         <label>日付</label>
         <input type="date" id="input-date" />
       </div>
-      <div class="input-group" style="grid-column: span 1"></div>
+      <label class="paid-check-label">
+        <input type="checkbox" id="input-paid" onchange="togglePaidMode('input')" />
+        <span class="paid-check-box"></span>
+        有給
+      </label>
     </div>
-    <div class="input-row">
+    <div id="input-time-row" class="input-row">
       <div class="input-group">
         <label>開始</label>
         <input type="time" id="input-start" value="09:00" />
@@ -761,6 +843,7 @@
       </div>
     </div>
     <button class="btn-add" onclick="addRecord()">＋ 追加</button>
+    <button class="btn-bulk" onclick="showBulkModal()">📅 一括登録</button>
   </div>
 
   <!-- タブ切り替え -->
@@ -794,6 +877,87 @@
 
 <!-- トースト -->
 <div class="toast" id="toast"></div>
+
+<!-- 一括登録モーダル -->
+<div class="modal-overlay" id="bulk-modal">
+  <div class="modal">
+    <h3>📅 一括登録</h3>
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <div style="display:flex; gap:8px; align-items:flex-end;">
+        <div class="input-group" style="flex:1;">
+          <label>開始日</label>
+          <input type="date" id="bulk-start-date" />
+        </div>
+        <div class="input-group" style="flex:1;">
+          <label>終了日</label>
+          <input type="date" id="bulk-end-date" />
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <div id="bulk-time-row" style="display:flex; gap:8px; flex:1;">
+          <div class="input-group" style="flex:1;">
+            <label>開始時刻</label>
+            <input type="time" id="bulk-start-time" value="09:00" />
+          </div>
+          <div class="input-group" style="flex:1;">
+            <label>終了時刻</label>
+            <input type="time" id="bulk-end-time" value="18:00" />
+          </div>
+        </div>
+        <label class="paid-check-label" style="margin-left:12px;">
+          <input type="checkbox" id="bulk-paid" onchange="togglePaidMode('bulk')" />
+          <span class="paid-check-box"></span>
+          有給
+        </label>
+      </div>
+      <div style="font-size:11px; color:var(--text-muted);">※ 土日・祝日は自動的に除外されます</div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeBulkModal()">キャンセル</button>
+      <button class="btn-primary" style="flex:1; box-shadow:none;" onclick="executeBulkRegister()">一括登録</button>
+    </div>
+  </div>
+</div>
+
+<!-- 上書き確認モーダル -->
+<div class="modal-overlay" id="overwrite-modal">
+  <div class="modal">
+    <h3>⚠️ 登録済みの日があります</h3>
+    <p style="font-size:13px; color:var(--text-muted); line-height:1.7;" id="overwrite-msg"></p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="resolveOverwrite(false)">いいえ（スキップ）</button>
+      <button class="btn-primary" style="flex:1; box-shadow:none;" onclick="resolveOverwrite(true)">はい（上書き）</button>
+    </div>
+  </div>
+</div>
+
+<!-- 編集モーダル -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <h3>記録を編集 <span id="edit-date-label" style="color:var(--accent);"></span></h3>
+    <div style="display:flex; align-items:center; justify-content:flex-end; margin-bottom:10px;">
+      <label class="paid-check-label">
+        <input type="checkbox" id="edit-paid" onchange="togglePaidMode('edit')" />
+        <span class="paid-check-box"></span>
+        有給
+      </label>
+    </div>
+    <div id="edit-time-row" class="input-row">
+      <div class="input-group">
+        <label>開始</label>
+        <input type="time" id="edit-start" />
+      </div>
+      <div class="input-group">
+        <label>終了</label>
+        <input type="time" id="edit-end" />
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeEditModal()">キャンセル</button>
+      <button class="btn-primary" style="flex:1; box-shadow:none;" onclick="saveEditRecord()">更新</button>
+    </div>
+  </div>
+</div>
 
 <!-- ログアウト確認モーダル -->
 <div class="modal-overlay" id="logout-modal">
@@ -977,15 +1141,13 @@
 
   function addRecord() {
     const date  = document.getElementById('input-date').value;
-    const start = document.getElementById('input-start').value;
-    const end   = document.getElementById('input-end').value;
+    const isPaid = document.getElementById('input-paid').checked;
+    const start = isPaid ? null : document.getElementById('input-start').value;
+    const end   = isPaid ? null : document.getElementById('input-end').value;
 
-    if (!date || !start || !end) {
-      showToast('日付・開始・終了を入力してください');
-      return;
-    }
+    if (!date) { showToast('日付を入力してください'); return; }
+    if (!isPaid && (!start || !end)) { showToast('開始・終了時刻を入力してください'); return; }
 
-    // 入力日が表示月に合っているか確認
     const d = new Date(date);
     if (d.getFullYear() !== viewYear || d.getMonth() !== viewMonth) {
       showToast('表示中の月の日付を入力してください');
@@ -993,21 +1155,24 @@
     }
 
     const s = getSettings();
-    const startMin = timeToMin(start);
-    const endMin   = timeToMin(end);
-    if (endMin <= startMin) {
-      showToast('終了時刻は開始より後にしてください');
-      return;
-    }
-
-    const workMin = endMin - startMin - s.breakHours * 60;
-    if (workMin <= 0) {
-      showToast('実労働時間が0以下になります');
-      return;
+    let workMin;
+    if (isPaid) {
+      workMin = s.dailyHours * 60;
+    } else {
+      const startMin = timeToMin(start);
+      const endMin   = timeToMin(end);
+      if (endMin <= startMin) { showToast('終了時刻は開始より後にしてください'); return; }
+      workMin = endMin - startMin - s.breakHours * 60;
+      if (workMin <= 0) { showToast('実労働時間が0以下になります'); return; }
     }
 
     const records = getRecords();
-    records.push({ id: Date.now(), date, start, end, workMin });
+    if (records.some(r => r.date === date)) {
+      showToast('この日はすでに登録されています。編集する場合はカレンダーからタップしてください');
+      return;
+    }
+
+    records.push({ id: Date.now(), date, start, end, workMin, isPaid });
     records.sort((a, b) => a.date.localeCompare(b.date));
     saveRecords(records);
     renderRecords();
@@ -1035,16 +1200,16 @@
     }
 
     list.innerHTML = records.map(r => {
-      const h = Math.floor(r.workMin / 60);
-      const m = r.workMin % 60;
-      const hStr = m > 0 ? `${h}h${m}m` : `${h}h`;
+      const hStr = r.isPaid ? '有給' : minToHm(r.workMin);
+      const timeStr = r.isPaid ? '有給休暇' : `${r.start}〜${r.end}`;
+      const hoursColor = r.isPaid ? 'color:#f0a868;' : '';
       const dateDisp = r.date.slice(5).replace('-', '/');
       return `
-        <div class="record-item">
+        <div class="record-item" onclick="editCalRecord('${r.date}')" style="cursor:pointer;">
           <div class="record-date">${dateDisp}</div>
-          <div class="record-time">${r.start}〜${r.end}</div>
-          <div class="record-hours">${hStr}</div>
-          <button class="btn-del" onclick="deleteRecord(${r.id})">✕</button>
+          <div class="record-time">${timeStr}</div>
+          <div class="record-hours" style="${hoursColor}">${hStr}</div>
+          <button class="btn-del" onclick="event.stopPropagation(); deleteRecord(${r.id})">✕</button>
         </div>`;
     }).join('');
   }
@@ -1118,14 +1283,16 @@
       ? Math.min(Math.round((totalH / (bizDaysTotal * s.dailyHours)) * 100), 999)
       : 0;
 
+    const diffMin  = Math.round((totalH - shouldH) * 60);
     const diffEl = document.getElementById('gauge-diff');
-    const sign   = diff >= 0 ? '+' : '';
-    diffEl.textContent = sign + diff.toFixed(1);
-    diffEl.className   = 'gauge-main ' + (diff > 0 ? 'positive' : diff < 0 ? 'negative' : 'neutral');
+    const sign   = diffMin >= 0 ? '+' : '';
+    diffEl.textContent = (diffMin >= 0 ? '+' : '') + minToHm(Math.abs(diffMin)).replace(/^-/, '');
+    if (diffMin < 0) diffEl.textContent = '-' + minToHm(Math.abs(diffMin));
+    diffEl.className   = 'gauge-main ' + (diffMin > 0 ? 'positive' : diffMin < 0 ? 'negative' : 'neutral');
 
     document.getElementById('gauge-pct').textContent    = pct + '%';
-    document.getElementById('stat-actual').textContent  = totalH.toFixed(1);
-    document.getElementById('stat-should').textContent  = shouldH.toFixed(1);
+    document.getElementById('stat-actual').textContent  = minToHm(Math.round(totalH * 60));
+    document.getElementById('stat-should').textContent  = minToHm(Math.round(shouldH * 60));
     document.getElementById('stat-days').textContent    = records.length;
     document.getElementById('info-required').textContent     = s.requiredHours;
     document.getElementById('info-bizdays').textContent      = bizDaysToday;
@@ -1139,7 +1306,124 @@
     bar.style.backgroundColor = diff >= 0 ? 'var(--accent)' : 'var(--danger)';
   }
 
-  // ======= TABS =======
+  // ======= PAID MODE =======
+  function togglePaidMode(context) {
+    if (context === 'input') {
+      const checked = document.getElementById('input-paid').checked;
+      document.getElementById('input-time-row').style.display = checked ? 'none' : 'grid';
+    } else if (context === 'bulk') {
+      const checked = document.getElementById('bulk-paid').checked;
+      document.getElementById('bulk-time-row').style.display = checked ? 'none' : 'flex';
+    } else if (context === 'edit') {
+      const checked = document.getElementById('edit-paid').checked;
+      document.getElementById('edit-time-row').style.display = checked ? 'none' : 'grid';
+    }
+  }
+  function showBulkModal() {
+    // デフォルトを今月の1日〜末日にセット
+    const y = viewYear;
+    const m = String(viewMonth + 1).padStart(2, '0');
+    const lastDay = new Date(y, viewMonth + 1, 0).getDate();
+    document.getElementById('bulk-start-date').value = `${y}-${m}-01`;
+    document.getElementById('bulk-end-date').value   = `${y}-${m}-${String(lastDay).padStart(2,'0')}`;
+    document.getElementById('bulk-modal').classList.add('open');
+  }
+
+  function closeBulkModal() {
+    document.getElementById('bulk-modal').classList.remove('open');
+  }
+
+  let overwriteResolver = null;
+
+  function resolveOverwrite(answer) {
+    document.getElementById('overwrite-modal').classList.remove('open');
+    if (overwriteResolver) overwriteResolver(answer);
+  }
+
+  function askOverwrite(count) {
+    return new Promise(resolve => {
+      overwriteResolver = resolve;
+      document.getElementById('overwrite-msg').textContent =
+        `登録済みの日が${count}件含まれています。上書きしますか？スキップする場合は「いいえ」を選択してください。`;
+      document.getElementById('overwrite-modal').classList.add('open');
+    });
+  }
+
+  async function executeBulkRegister() {
+    const startDate = document.getElementById('bulk-start-date').value;
+    const endDate   = document.getElementById('bulk-end-date').value;
+
+    const isPaid = document.getElementById('bulk-paid').checked;
+    const startTime = isPaid ? null : document.getElementById('bulk-start-time').value;
+    const endTime   = isPaid ? null : document.getElementById('bulk-end-time').value;
+
+    if (!startDate || !endDate) { showToast('開始日・終了日を入力してください'); return; }
+    if (!isPaid && (!startTime || !endTime)) { showToast('開始・終了時刻を入力してください'); return; }
+    if (startDate > endDate) { showToast('開始日は終了日より前にしてください'); return; }
+
+    const s = getSettings();
+    let workMin;
+    if (isPaid) {
+      workMin = s.dailyHours * 60;
+    } else {
+      const startMin = timeToMin(startTime);
+      const endMin   = timeToMin(endTime);
+      if (endMin <= startMin) { showToast('終了時刻は開始より後にしてください'); return; }
+      workMin = endMin - startMin - s.breakHours * 60;
+      if (workMin <= 0) { showToast('実労働時間が0以下になります'); return; }
+    }
+
+    const holidays = await fetchHolidays(viewYear);
+    closeBulkModal();
+
+    // 対象日を収集
+    const targets = [];
+    const cur = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate   + 'T00:00:00');
+    while (cur <= end) {
+      const dateStr = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`;
+      const dow = cur.getDay();
+      if (dow !== 0 && dow !== 6 && !holidays.has(dateStr) &&
+          cur.getFullYear() === viewYear && cur.getMonth() === viewMonth) {
+        targets.push(dateStr);
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    let records = getRecords();
+    const duplicates = targets.filter(d => records.some(r => r.date === d));
+
+    // 重複があれば1回だけ確認
+    let doOverwrite = false;
+    if (duplicates.length > 0) {
+      doOverwrite = await askOverwrite(duplicates.length);
+    }
+
+    let added = 0, overwritten = 0, skipped = 0;
+    targets.forEach((dateStr, i) => {
+      const existing = records.find(r => r.date === dateStr);
+      if (existing) {
+        if (doOverwrite) {
+          records = records.map(r =>
+            r.date === dateStr ? { ...r, start: startTime, end: endTime, workMin, isPaid } : r
+          );
+          overwritten++;
+        } else {
+          skipped++;
+        }
+      } else {
+        records.push({ id: Date.now() + i, date: dateStr, start: startTime, end: endTime, workMin, isPaid });
+        added++;
+      }
+    });
+
+    records.sort((a, b) => a.date.localeCompare(b.date));
+    saveRecords(records);
+    renderRecords();
+    updateGauge();
+    if (currentTab === 'cal') renderCalendar();
+    showToast(`${added}件追加・${overwritten}件上書き・${skipped}件スキップしました`);
+  }
   let currentTab = 'list';
 
   function switchTab(tab) {
@@ -1193,14 +1477,71 @@
       if (isSun)     cls += ' sun';
       else if (isSat) cls += ' sat';
 
-      const hoursDisp = hasRecord
-        ? `<div class="cal-hours">${hoursMap[dateStr].toFixed(1)}h</div>`
-        : '';
+      const record = records.find(r => r.date === dateStr);
+      let hoursDisp = '';
+      if (record) {
+        hoursDisp = record.isPaid
+          ? `<div class="cal-paid">有給</div>`
+          : `<div class="cal-hours">${minToHm(record.workMin)}</div>`;
+      }
 
-      html += `<div class="${cls}" onclick="selectCalDate('${dateStr}')" style="cursor:pointer;"><div class="cal-day">${d}</div>${hoursDisp}</div>`;
+      const clickFn = record
+        ? `editCalRecord('${dateStr}')`
+        : `selectCalDate('${dateStr}')`;
+
+      html += `<div class="${cls}" onclick="${clickFn}" style="cursor:pointer;"><div class="cal-day">${d}</div>${hoursDisp}</div>`;
     }
 
     grid.innerHTML = html;
+  }
+
+  function editCalRecord(dateStr) {
+    const records = getRecords();
+    const r = records.find(rec => rec.date === dateStr);
+    if (!r) return;
+    document.getElementById('edit-date-label').textContent = dateStr.slice(5).replace('-', '/');
+    const isPaid = r.isPaid || false;
+    document.getElementById('edit-paid').checked = isPaid;
+    document.getElementById('edit-time-row').style.display = isPaid ? 'none' : 'grid';
+    document.getElementById('edit-start').value = r.start || '';
+    document.getElementById('edit-end').value   = r.end   || '';
+    document.getElementById('edit-modal').dataset.recordId = r.id;
+    document.getElementById('edit-modal').classList.add('open');
+  }
+
+  function closeEditModal() {
+    document.getElementById('edit-modal').classList.remove('open');
+  }
+
+  function saveEditRecord() {
+    const id     = parseInt(document.getElementById('edit-modal').dataset.recordId);
+    const isPaid = document.getElementById('edit-paid').checked;
+    const start  = isPaid ? null : document.getElementById('edit-start').value;
+    const end    = isPaid ? null : document.getElementById('edit-end').value;
+
+    if (!isPaid && (!start || !end)) { showToast('開始・終了を入力してください'); return; }
+
+    const s = getSettings();
+    let workMin;
+    if (isPaid) {
+      workMin = s.dailyHours * 60;
+    } else {
+      const startMin = timeToMin(start);
+      const endMin   = timeToMin(end);
+      if (endMin <= startMin) { showToast('終了時刻は開始より後にしてください'); return; }
+      workMin = endMin - startMin - s.breakHours * 60;
+      if (workMin <= 0) { showToast('実労働時間が0以下になります'); return; }
+    }
+
+    const records = getRecords().map(r =>
+      r.id === id ? { ...r, start, end, workMin, isPaid } : r
+    );
+    saveRecords(records);
+    closeEditModal();
+    renderRecords();
+    updateGauge();
+    renderCalendar();
+    showToast('更新しました');
   }
 
   function selectCalDate(dateStr) {
@@ -1214,12 +1555,28 @@
     return h * 60 + m;
   }
 
+  function minToHm(min) {
+    const absMin = Math.abs(min);
+    const h = Math.floor(absMin / 60);
+    const m = absMin % 60;
+    const sign = min < 0 ? '-' : '';
+    return m > 0 ? `${sign}${h}時間${m}分` : `${sign}${h}時間`;
+  }
+
   // ======= TOAST =======
+  let toastTimer = null;
   function showToast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2500);
+    t.classList.remove('show');
+    clearTimeout(toastTimer);
+    // 一度非表示にしてから再表示することでアニメーションをリセット
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        t.classList.add('show');
+        toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+      });
+    });
   }
 
   // ======= LOGOUT MODAL =======
